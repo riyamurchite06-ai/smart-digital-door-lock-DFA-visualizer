@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Digital Door Lock — DFA Visualizer</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Segoe UI,Arial,sans-serif}
+
+:root{
+  --bg:#f6f9fc;
+  --card:#ffffff;
+  --text:#183153;
+  --muted:#6b7c93;
+  --line:#e4ebf3;
+  --blue:#4f8df7;
+  --blue-soft:#edf5ff;
+  --green:#28a97b;
+  --green-soft:#eafaf4;
+  --red:#e85d75;
+  --red-soft:#fff0f3;
+  --yellow:#f0b429;
+  --yellow-soft:#fff8df;
+  --shadow:0 12px 35px rgba(55,84,120,.09);
+}
+
+body{
+  min-height:100vh;
+  background:linear-gradient(135deg,#f8fbff 0%,#f4f8fc 55%,#eef6ff 100%);
+  color:var(--text);
+  padding:28px 16px;
+}
+
+.container{width:min(1080px,100%);margin:auto}
+
+.header{text-align:center;margin-bottom:24px}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 13px;border-radius:999px;
+  background:var(--blue-soft);color:#3977d6;font-size:13px;font-weight:700;
+  margin-bottom:12px;
+}
+h1{font-size:clamp(28px,4vw,42px);letter-spacing:-1px}
+.subtitle{color:var(--muted);margin-top:8px;font-size:16px}
+
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:22px;
+  box-shadow:var(--shadow);padding:24px;margin-bottom:20px;
+}
+
+.door-card{
+  display:grid;grid-template-columns:170px 1fr;gap:25px;align-items:center;
+}
+.door-visual{
+  height:170px;border-radius:20px;background:linear-gradient(145deg,#eef6ff,#f9fcff);
+  display:flex;align-items:center;justify-content:center;font-size:78px;
+  border:1px solid #deebf8;
+}
+.status-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 13px;border-radius:999px;font-weight:800;font-size:14px;
+  margin-bottom:12px;
+}
+.status-pill.locked{background:var(--red-soft);color:var(--red)}
+.status-pill.open{background:var(--green-soft);color:var(--green)}
+
+.section-title{font-size:21px;margin-bottom:6px}
+.section-subtitle{color:var(--muted);font-size:14px;margin-bottom:18px}
+
+.password-row{display:flex;gap:10px;flex-wrap:wrap}
+.input-wrap{position:relative;flex:1;min-width:220px}
+input{
+  width:100%;padding:14px 45px 14px 15px;border:1.5px solid #d9e3ee;
+  border-radius:12px;font-size:16px;outline:none;background:#fbfdff;
+  transition:.2s;
+}
+input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(79,141,247,.11)}
+.toggle-pass{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  border:0;background:transparent;color:#71849b;cursor:pointer;font-size:18px;
+}
+
+button{
+  border:0;border-radius:12px;padding:13px 18px;font-size:15px;font-weight:700;
+  cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+}
+button:hover{transform:translateY(-2px)}
+.primary{background:var(--blue);color:#fff;box-shadow:0 7px 18px rgba(79,141,247,.2)}
+.secondary{background:#f1f5f9;color:#53657a}
+.primary:hover{background:#3f7fe9}
+.secondary:hover{background:#e7edf4}
+
+.message{min-height:24px;margin-top:13px;font-weight:700}
+.success{color:var(--green)}
+.error{color:var(--red)}
+
+.progress{
+  height:7px;background:#edf2f7;border-radius:99px;overflow:hidden;margin-top:17px
+}
+.progress-bar{height:100%;width:25%;background:var(--blue);transition:width .55s ease}
+
+.states{
+  display:grid;grid-template-columns:1fr 40px 1fr 40px 1fr 40px 1fr;
+  align-items:center;gap:8px;
+}
+.state{
+  min-height:105px;border:1.5px solid var(--line);border-radius:17px;
+  background:#fbfdff;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;gap:5px;transition:.35s;position:relative;
+}
+.state strong{font-size:21px}
+.state small{color:var(--muted);font-size:12px;text-align:center;padding:0 5px}
+.state.active{
+  background:var(--yellow-soft);border:2px solid #efc44d;
+  transform:translateY(-5px);box-shadow:0 10px 22px rgba(240,180,41,.15)
+}
+.state.final{border-color:#a9ddca}
+.arrow{font-size:25px;color:#a9b8c8;text-align:center}
+
+.state-dot{
+  width:8px;height:8px;border-radius:50%;background:#ccd7e3;
+  position:absolute;top:10px;right:10px
+}
+.active .state-dot{background:var(--yellow)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--line);border-radius:14px}
+th,td{padding:13px 12px;text-align:center;border-bottom:1px solid var(--line)}
+th{background:#f4f8fc;color:#50647c;font-size:13px}
+tr:last-child td{border-bottom:0}
+td{font-size:14px;color:#52657b}
+tr:hover td{background:#fbfdff}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.step{
+  padding:15px;border:1px solid var(--line);border-radius:15px;background:#fbfdff;
+  transition:.3s
+}
+.step.active-step{border-color:#b9d4fb;background:var(--blue-soft)}
+.step-num{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:7px}
+
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.info-item{padding:15px;background:#f8fbff;border:1px solid var(--line);border-radius:14px}
+.info-item span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.info-item b{font-size:15px}
+
+.toast{
+  position:fixed;right:22px;bottom:22px;max-width:310px;
+  background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);
+  padding:14px 16px;border-radius:14px;opacity:0;transform:translateY(15px);
+  pointer-events:none;transition:.3s;font-weight:700
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:760px){
+  .door-card{grid-template-columns:1fr}
+  .door-visual{height:125px;font-size:62px}
+  .states{grid-template-columns:1fr;gap:7px}
+  .arrow{transform:rotate(90deg)}
+  .steps,.info-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header class="header">
+  <div class="badge">● INTERACTIVE DFA SIMULATOR</div>
+  <h1>🚪 Smart Digital Door Lock</h1>
+  <p class="subtitle">Finite Automata Based Door Lock Visualizer</p>
+</header>
+
+<section class="card door-card">
+  <div class="door-visual" id="doorIcon">🚪🔒</div>
+
+  <div>
+    <div id="status" class="status-pill locked">🔴 DOOR LOCKED</div>
+    <h2 class="section-title">Unlock the Digital Door</h2>
+    <p class="section-subtitle">Enter the password and watch the DFA move through each state.</p>
+
+    <div class="password-row">
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="Enter password" maxlength="20"
+               onkeydown="if(event.key==='Enter') checkPassword()">
+        <button class="toggle-pass" onclick="togglePassword()" aria-label="Show password">👁</button>
+      </div>
+      <button class="primary" onclick="checkPassword()">🔓 Open Door</button>
+      <button class="secondary" onclick="resetSystem()">↻ Reset</button>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">DFA State Visualization</h2>
+  <p class="section-subtitle">The highlighted state shows where the automaton is currently located.</p>
+
+  <div class="states">
+    <div class="state active" id="q0"><span class="state-dot"></span><strong>q0</strong><small>LOCKED</small></div>
+    <div class="arrow">→</div>
+    <div class="state" id="q1"><span class="state-dot"></span><strong>q1</strong><small>ENTER PASSWORD</small></div>
+    <div class="arrow">→</div>
+    <div class="state" id="q2"><span class="state-dot"></span><strong>q2</strong><small>CHECK</small></div>
+    <div class="arrow">→</div>
+    <div class="state final" id="q3"><span class="state-dot"></span><strong>q3</strong><small>DOOR OPEN</small></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">Transition Table</h2>
+  <p class="section-subtitle">Rules followed by the DFA during password authentication.</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Current State</th><th>Input</th><th>Next State</th></tr>
+      <tr><td>q0 — LOCKED</td><td>Enter Password</td><td>q1</td></tr>
+      <tr><td>q1 — PASSWORD</td><td>Check</td><td>q2</td></tr>
+      <tr><td>q2 — CHECK</td><td>Correct</td><td>q3</td></tr>
+      <tr><td>q2 — CHECK</td><td>Wrong</td><td>q0</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">Simulation Steps</h2>
+  <p class="section-subtitle">Follow the DFA decision process in real time.</p>
+
+  <div class="steps">
+    <div class="step active-step" id="stepCard1">
+      <div class="step-num">STEP 01</div>
+      <p id="step1">Current State: q0 — Door Locked</p>
+    </div>
+    <div class="step" id="stepCard2">
+      <div class="step-num">STEP 02</div>
+      <p id="step2">Waiting for password...</p>
+    </div>
+    <div class="step" id="stepCard3">
+      <div class="step-num">STEP 03</div>
+      <p id="step3">Password not checked yet.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">📚 About This DFA</h2>
+  <div class="info-grid">
+    <div class="info-item"><span>Initial State</span><b>q0 — Door Locked</b></div>
+    <div class="info-item"><span>Accepting State</span><b>q3 — Door Open</b></div>
+    <div class="info-item"><span>Correct Password</span><b>1234</b></div>
+  </div>
+  <p class="section-subtitle" style="margin-top:16px;margin-bottom:0">
+    If the password is correct, the DFA reaches <b>q3</b> and the door opens.
+    If the password is wrong, it returns to <b>q0</b> and remains locked.
+  </p>
+</section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const correctPassword = "1234";
+let busy = false;
+
+function activateState(stateId){
+  document.querySelectorAll(".state").forEach(s => s.classList.remove("active"));
+  document.getElementById(stateId).classList.add("active");
+
+  const widths = {q0:"25%",q1:"50%",q2:"75%",q3:"100%"};
+  document.getElementById("progressBar").style.width = widths[stateId];
+}
+
+function activateStep(n){
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("active-step"));
+  document.getElementById("stepCard"+n).classList.add("active-step");
+}
+
+function showToast(text){
+  const t=document.getElementById("toast");
+  t.textContent=text;
+  t.classList.add("show");
+  clearTimeout(window.toastTimer);
+  window.toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+function togglePassword(){
+  const input=document.getElementById("password");
+  const btn=document.querySelector(".toggle-pass");
+  if(input.type==="password"){
+    input.type="text"; btn.textContent="🙈";
+  }else{
+    input.type="password"; btn.textContent="👁";
+  }
+}
+
+function checkPassword(){
+  if(busy) return;
+
+  const password=document.getElementById("password").value.trim();
+  const message=document.getElementById("message");
+
+  if(!password){
+    message.textContent="⚠️ Please enter a password.";
+    message.className="message error";
+    showToast("Password is required");
+    return;
+  }
+
+  busy=true;
+  message.textContent="";
+  activateStep(2);
+  activateState("q1");
+
+  document.getElementById("step1").textContent="Current State: q0 — Door Locked";
+  document.getElementById("step2").textContent="Password entered — Moving to q1";
+
+  setTimeout(()=>{
+    activateState("q2");
+    activateStep(3);
+    document.getElementById("step3").textContent="Checking password — Current State: q2";
+
+    setTimeout(()=>{
+      if(password===correctPassword){
+        activateState("q3");
+        document.getElementById("status").textContent="🟢 DOOR OPEN";
+        document.getElementById("status").className="status-pill open";
+        document.getElementById("doorIcon").textContent="🚪🔓";
+        message.textContent="✅ Correct Password! Welcome!";
+        message.className="message success";
+        document.getElementById("step3").textContent="Correct Password → q3 → DOOR OPEN";
+        showToast("Access granted — door opened!");
+      }else{
+        activateState("q0");
+        activateStep(1);
+        document.getElementById("status").textContent="🔴 DOOR LOCKED";
+        document.getElementById("status").className="status-pill locked";
+        document.getElementById("doorIcon").textContent="🚪🔒";
+        message.textContent="❌ Wrong Password! Access Denied.";
+        message.className="message error";
+        document.getElementById("step3").textContent="Wrong Password → q0 → DOOR LOCKED";
+        showToast("Access denied — wrong password");
+      }
+      busy=false;
+    },700);
+  },700);
+}
+
+function resetSystem(){
+  busy=false;
+  document.getElementById("password").value="";
+  document.getElementById("password").type="password";
+  document.querySelector(".toggle-pass").textContent="👁";
+  document.getElementById("status").textContent="🔴 DOOR LOCKED";
+  document.getElementById("status").className="status-pill locked";
+  document.getElementById("doorIcon").textContent="🚪🔒";
+  document.getElementById("message").textContent="";
+  document.getElementById("message").className="message";
+  document.getElementById("step1").textContent="Current State: q0 — Door Locked";
+  document.getElementById("step2").textContent="Waiting for password...";
+  document.getElementById("step3").textContent="Password not checked yet.";
+  activateState("q0");
+  activateStep(1);
+  showToast("System reset");
+}
+</script>
+</body>
+</html>
